@@ -5,6 +5,8 @@ adapted from the novels *The Digital Tapestry* and *What the Gods Remember*.
 
 Built with React 19 + Vite. By **Mazin Mohamedkhair**.
 
+**▶ Play it live:** https://resonance-game-nine.vercel.app/
+
 ---
 
 ## Run it
