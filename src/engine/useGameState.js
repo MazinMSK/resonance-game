@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { START_SCENE, SAVE_KEY } from "./constants";
+import { START_SCENE, SAVE_KEY, SAVE_KEY_V1 } from "./constants";
 
 // ─── PERSISTENT GAME STATE ───────────────────────────────────────────────────
 // Single source of truth for player progress. Auto-saves to localStorage so a
@@ -11,20 +11,30 @@ const EMPTY = {
   memories: [],     // array of memory ids collected
   resonance: 0,     // 0–100 meter
   history: [],       // ordered list of visited scene ids (for analytics / "paths")
+  resonantWords: [], // ids of resonant words already revealed (dedupe bumps)
   startedAt: null,   // ISO timestamp of first play
   updatedAt: null,
 };
 
-function load() {
+function readKey(key) {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed.sceneId !== "string") return null;
-    return { ...EMPTY, ...parsed };
+    return parsed;
   } catch {
     return null;
   }
+}
+
+function load() {
+  // Prefer the current save; fall back to migrating a legacy v1 save.
+  const current = readKey(SAVE_KEY);
+  if (current) return { ...EMPTY, ...current };
+  const legacy = readKey(SAVE_KEY_V1);
+  if (legacy) return { ...EMPTY, ...legacy }; // carried forward into v2 shape
+  return null;
 }
 
 export function hasSave() {
@@ -33,7 +43,8 @@ export function hasSave() {
 }
 
 function isPristine(s) {
-  return s.sceneId === START_SCENE && s.memories.length === 0 && s.resonance === 0 && s.history.length === 0;
+  return s.sceneId === START_SCENE && s.memories.length === 0 && s.resonance === 0 &&
+    s.history.length === 0 && s.resonantWords.length === 0;
 }
 
 export function useGameState() {
@@ -85,11 +96,28 @@ export function useGameState() {
     setState((s) => ({ ...s, resonance: Math.min(100, s.resonance + amount) }));
   }, []);
 
+  // Reveal a resonant word once: records its id and grants a small one-time
+  // resonance bump. Returns true if this was a new reveal (so callers can SFX).
+  const revealWord = useCallback((wordId, bump = 2) => {
+    let firstTime = false;
+    setState((s) => {
+      if (s.resonantWords.includes(wordId)) return s;
+      firstTime = true;
+      return {
+        ...s,
+        resonantWords: [...s.resonantWords, wordId],
+        resonance: Math.min(100, s.resonance + bump),
+      };
+    });
+    return firstTime;
+  }, []);
+
   const reset = useCallback(() => {
     const fresh = { ...EMPTY, sceneId: START_SCENE };
     setState(fresh);
     try {
       localStorage.removeItem(SAVE_KEY);
+      localStorage.removeItem(SAVE_KEY_V1);
     } catch {
       /* ignore */
     }
@@ -100,6 +128,7 @@ export function useGameState() {
     goToScene,
     addMemory,
     addResonance,
+    revealWord,
     reset,
     resume,
     setSceneId: goToScene,

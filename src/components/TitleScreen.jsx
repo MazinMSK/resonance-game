@@ -1,8 +1,15 @@
 import { SceneArt } from "../art/SceneArt";
+import { ACHIEVEMENTS } from "../engine/useProgress";
+import { ENDING_IDS } from "../engine/endings";
 
 // ─── TITLE SCREEN ────────────────────────────────────────────────────────────
 
-export function TitleScreen({ scene, choose, canContinue, onContinue }) {
+export function TitleScreen({
+  scene, choose, canContinue, onContinue,
+  onOpenSettings, onOpenConstellation, achievements = [], endingsFound = [],
+}) {
+  const achTotal = Object.keys(ACHIEVEMENTS).length;
+  const hasProgress = achievements.length > 0 || endingsFound.length > 0;
   return (
     <div style={{ minHeight: "100vh", background: "#020408", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" }}>
       <style>{`
@@ -45,7 +52,32 @@ export function TitleScreen({ scene, choose, canContinue, onContinue }) {
             </button>
           ))}
         </div>
-        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 12, color: "rgba(200,192,180,0.3)", marginTop: 40, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+        {/* Progress tracker (only once the player has discovered something) */}
+        {hasProgress && (
+          <div style={{ marginTop: 34, padding: "16px 18px", border: "1px solid rgba(201,169,110,0.16)", borderRadius: 4, background: "rgba(201,169,110,0.03)" }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: 24, fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.12em", color: "rgba(200,192,180,0.55)", textTransform: "uppercase" }}>
+              <span>Endings {endingsFound.length}/{ENDING_IDS.length}</span>
+              <span>Achievements {achievements.length}/{achTotal}</span>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 12 }}>
+              {Object.values(ACHIEVEMENTS).map((a) => {
+                const got = achievements.includes(a.id);
+                return (
+                  <span key={a.id} title={got ? `${a.name} — ${a.desc}` : "Locked"} style={{ fontSize: 18, color: got ? "#e8d5a0" : "rgba(200,192,180,0.18)", filter: got ? "drop-shadow(0 0 6px rgba(201,169,110,0.4))" : "none", transition: "all 0.3s" }}>
+                    {a.icon}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "center", gap: 18, marginTop: 26 }}>
+          <button onClick={onOpenConstellation} style={{ background: "none", border: "none", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.15em", color: "rgba(126,200,200,0.6)", cursor: "pointer", textTransform: "uppercase", padding: 8 }}>✶ Constellation</button>
+          <button onClick={onOpenSettings} style={{ background: "none", border: "none", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.15em", color: "rgba(200,192,180,0.5)", cursor: "pointer", textTransform: "uppercase", padding: 8 }}>⚙ Settings</button>
+        </div>
+
+        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 12, color: "rgba(200,192,180,0.3)", marginTop: 32, letterSpacing: "0.08em", textTransform: "uppercase" }}>
           Mazin Mohamedkhair
         </p>
       </div>
